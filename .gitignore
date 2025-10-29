@@ -1,0 +1,4 @@
+.stack-work/
+*~
+.markdownlint.yaml
+CHANGELOG.md
