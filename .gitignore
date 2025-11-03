@@ -2,3 +2,4 @@
 *~
 .markdownlint.yaml
 CHANGELOG.md
+stack.yaml.lock
