@@ -25,7 +25,9 @@ source-repository head
 
 library
   exposed-modules:
-      Lib
+      Bag
+      Bucket
+      Node
   other-modules:
       Paths_lab2
   autogen-modules:
