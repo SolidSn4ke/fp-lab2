@@ -1,6 +1,10 @@
 module Main (main) where
 
-import Bag (someFunc)
+import Bag
 
 main :: IO ()
-main = someFunc
+main = do
+    let bag = newBag
+    let bag' = put "hello" bag
+    let bag'' = put "hello" bag'
+    print bag''

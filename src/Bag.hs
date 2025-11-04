@@ -1,5 +1,5 @@
 module Bag (
-    someFunc,
+    put, newBag, Bag (..), hash
 ) where
 
 import Bucket
@@ -37,13 +37,18 @@ instance Monad Bag where
 hash :: (Show a) => a -> Int
 hash x = case show x of
     "" -> -1
-    (c : _) -> fromEnum c
+    s -> foldl (\h c -> 31 * h + fromEnum c) 0 s 
 
-put :: (Show a) => Bag a -> a -> Bag a
-put (Bag b) a = do
-    let h = hash a
-    let index = h .&. length b
-    Bag b
+newBag :: Bag a
+newBag = Bag (replicate 16 (Bucket Null))
+
+put :: (Show a) => a -> Bag a -> Bag a
+put a (Bag b) = Bag $ updateBuckets b index newNode
+    where
+        h = hash a
+        index = h .&. (length b - 1)
+        newNode = Node h a 1 Null
+
 
 someFunc :: IO ()
 someFunc = putStrLn "someFunc"
