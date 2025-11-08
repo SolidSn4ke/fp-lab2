@@ -27,7 +27,6 @@ library
   exposed-modules:
       Bag
       Bucket
-      Node
   other-modules:
       Paths_lab2
   autogen-modules:
