@@ -23,15 +23,15 @@ instance (Eq k, Show k) => Monoid (Bag k) where
     mappend = (<>)
 
 instance (Eq k, Show k) => Eq (Bag k) where
-  (==) (Bag b1) (Bag b2) = cond1 && cond2
-    where
-      cond1 = length b1 == length b2
-      cond2 = foldlBag (\acc (Bucket k v) -> acc && count k (Bag b2) == v) True $ filterBag (/= EmptyBucket) (Bag b1)
+    (==) (Bag b1) (Bag b2) = cond1 && cond2
+      where
+        cond1 = length b1 == length b2
+        cond2 = foldlBag (\acc (Bucket k v) -> acc && count k (Bag b2) == v) True $ filterBag (/= EmptyBucket) (Bag b1)
 
 instance (Eq k, Show k) => Show (Bag k) where
-  show (Bag bs) = "{" ++ inner ++ "}"
-    where
-      inner = foldlBag (\acc (Bucket k v) -> if v > 0 then acc ++ show k ++ ": " ++ show v ++ ", " else acc) "" $ filterBag (/= EmptyBucket) (Bag bs)
+    show (Bag bs) = "{" ++ inner ++ "}"
+      where
+        inner = foldlBag (\acc (Bucket k v) -> if v > 0 then acc ++ show k ++ ": " ++ show v ++ ", " else acc) "" $ filterBag (/= EmptyBucket) (Bag bs)
 
 newBag :: Bag k
 newBag = Bag $ [EmptyBucket | _ <- [1 .. 10]]
@@ -93,13 +93,14 @@ delete key (Bag buckets) = Bag $ helper h
                 else helper ((i + 1) `mod` length buckets)
     h = hashcode key `mod` length buckets
 
-filterBag :: (Bucket k -> Bool) -> Bag k -> Bag k
+filterBag :: (Eq k) => (Bucket k -> Bool) -> Bag k -> Bag k
 filterBag _ (Bag []) = Bag []
 filterBag predicate (Bag (b : bs))
-    | predicate b =
-        let Bag filteredBs = filterBag predicate (Bag bs)
-         in Bag (b : filteredBs)
-    | otherwise = filterBag predicate (Bag bs)
+    | b == EmptyBucket || predicate b = Bag (b : filteredBs)
+    | otherwise = case b of
+        Bucket k _ -> Bag $ Bucket k 0 : filteredBs
+  where
+    Bag filteredBs = filterBag predicate (Bag bs)
 
 foldlBag :: (a -> Bucket k -> a) -> a -> Bag k -> a
 foldlBag _ acc (Bag []) = acc

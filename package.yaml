@@ -57,3 +57,5 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - lab2
+    - tasty
+    - tasty-hunit
