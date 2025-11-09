@@ -26,6 +26,6 @@ decrementBucket buckets index key = before ++ [newBucket] ++ after
   where
     newBucket = case buckets !! index of
         EmptyBucket -> EmptyBucket
-        Bucket _ v -> Bucket key (v - 1)
+        Bucket _ v -> Bucket key $ max 0 (v - 1)
     after = drop (index + 1) buckets
     before = take index buckets

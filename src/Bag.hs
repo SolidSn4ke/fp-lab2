@@ -12,16 +12,26 @@ module Bag (
 
 import Bucket
 import Data.Char (ord)
-import Data.List (foldl')
 
-newtype Bag k = Bag [Bucket k] deriving (Show, Eq)
+newtype Bag k = Bag [Bucket k]
 
-instance Semigroup (Bag k) where
-    (<>) (Bag b1) (Bag b2) = Bag (b1 ++ b2)
+instance (Eq k, Show k) => Semigroup (Bag k) where
+    (<>) (Bag b1) (Bag b2) = foldlBag (\acc (Bucket k v) -> insertN k v acc) (Bag b1) $ filterBag (/= EmptyBucket) (Bag b2)
 
-instance Monoid (Bag k) where
+instance (Eq k, Show k) => Monoid (Bag k) where
     mempty = newBag
     mappend = (<>)
+
+instance (Eq k, Show k) => Eq (Bag k) where
+  (==) (Bag b1) (Bag b2) = cond1 && cond2
+    where
+      cond1 = length b1 == length b2
+      cond2 = foldlBag (\acc (Bucket k v) -> acc && count k (Bag b2) == v) True $ filterBag (/= EmptyBucket) (Bag b1)
+
+instance (Eq k, Show k) => Show (Bag k) where
+  show (Bag bs) = "{" ++ inner ++ "}"
+    where
+      inner = foldlBag (\acc (Bucket k v) -> if v > 0 then acc ++ show k ++ ": " ++ show v ++ ", " else acc) "" $ filterBag (/= EmptyBucket) (Bag bs)
 
 newBag :: Bag k
 newBag = Bag $ [EmptyBucket | _ <- [1 .. 10]]
@@ -40,7 +50,7 @@ resize (Bag buckets) = reinsertAll keys (Bag [EmptyBucket | _ <- [1 .. newSize]]
     reinsertAll [] bag = bag
     reinsertAll (k : ks) bag = reinsertAll ks (insert k bag)
 
-insert :: (Eq k) => (Show k) => k -> Bag k -> Bag k
+insert :: (Eq k, Show k) => k -> Bag k -> Bag k
 insert key (Bag buckets) =
     if loadFactor (Bag buckets) >= 0.7
         then insert key (resize $ Bag buckets)
@@ -55,6 +65,12 @@ insert key (Bag buckets) =
     h = hashcode key `mod` length buckets
     updatedBag = Bag $ helper h
 
+insertN :: (Eq k, Show k) => k -> Int -> Bag k -> Bag k
+insertN key n bag
+    | n < 0 = bag
+    | n == 0 = delete key . insert key $ bag
+    | otherwise = insertN key (n - 1) (insert key bag)
+
 count :: (Eq k) => (Show k) => k -> Bag k -> Int
 count key (Bag buckets) = helper h
   where
@@ -62,7 +78,7 @@ count key (Bag buckets) = helper h
         EmptyBucket -> 0
         Bucket k v ->
             if k == key
-                then max 0 v
+                then v
                 else helper ((i + 1) `mod` length buckets)
     h = hashcode key `mod` length buckets
 
@@ -71,7 +87,7 @@ delete key (Bag buckets) = Bag $ helper h
   where
     helper i = case buckets !! i of
         EmptyBucket -> decrementBucket buckets i key
-        Bucket k v ->
+        Bucket k _ ->
             if k == key
                 then decrementBucket buckets i key
                 else helper ((i + 1) `mod` length buckets)
