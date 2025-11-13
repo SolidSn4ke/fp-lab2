@@ -12,6 +12,8 @@ module Bag (
 
 import Bucket
 import Data.Char (ord)
+import System.Random (Random)
+import Test.Tasty.QuickCheck (Arbitrary (..), choose, listOf)
 
 newtype Bag k = Bag [Bucket k]
 
@@ -25,6 +27,11 @@ instance (Eq k, Show k) => Semigroup (Bag k) where
 instance (Eq k, Show k) => Monoid (Bag k) where
     mempty = newBag
     mappend = (<>)
+
+instance (Arbitrary k, Show k, Eq k, Num k, Random k) => Arbitrary (Bag k) where
+    arbitrary = do
+        pairs <- listOf $ (,) <$> arbitrary <*> choose (0, 5)
+        return $ foldr (\(k, n) bag -> insert k . insert n $ bag) newBag pairs
 
 instance (Eq k, Show k) => Eq (Bag k) where
     (==) (Bag b1) (Bag b2) = cond
@@ -44,7 +51,7 @@ instance (Eq k, Show k) => Show (Bag k) where
         inner = foldlBag f "" (Bag bs)
 
 newBag :: Bag k
-newBag = Bag $ [EmptyBucket | _ <- [1 .. 10]]
+newBag = Bag $ [EmptyBucket | _ <- [1 :: Int .. 10]]
 
 loadFactor :: (Eq k) => Bag k -> Double
 loadFactor (Bag buckets) = filled / total
@@ -109,6 +116,7 @@ filterBag predicate (Bag (b : bs))
     | b == EmptyBucket || predicate b = Bag (b : filteredBs)
     | otherwise = case b of
         Bucket k _ -> Bag $ Bucket k 0 : filteredBs
+        EmptyBucket -> Bag $ EmptyBucket : filteredBs
   where
     Bag filteredBs = filterBag predicate (Bag bs)
 
