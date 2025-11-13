@@ -4,8 +4,6 @@ module Bucket (
     decrementBucket,
 ) where
 
-import Data.List
-
 data Bucket k = Bucket k Int | EmptyBucket deriving (Eq)
 
 instance (Show k) => Show (Bucket k) where

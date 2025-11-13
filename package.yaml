@@ -21,6 +21,9 @@ description:         Please see the README on GitHub at <https://github.com/gith
 
 dependencies:
 - base >= 4.7 && < 5
+- random
+- QuickCheck
+- tasty-quickcheck
 
 ghc-options:
 - -Wall
@@ -59,6 +62,3 @@ tests:
     - lab2
     - tasty
     - tasty-hunit
-    - QuickCheck
-    - tasty-quickcheck
-    - random
