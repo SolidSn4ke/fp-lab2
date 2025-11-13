@@ -1,14 +1,21 @@
+import System.Random (Random)
 import Test.Tasty
 import Test.Tasty.HUnit
+import Test.Tasty.QuickCheck as QC
 
 import Bag
 import Bucket
+
+instance (Arbitrary k, Show k, Eq k, Num k, Random k) => Arbitrary (Bag k) where
+    arbitrary = do
+        pairs <- listOf $ (,) <$> arbitrary <*> choose (0, 5)
+        return $ foldr (\(k, n) bag -> insert k . insert n $ bag) newBag pairs
 
 main :: IO ()
 main = defaultMain tests
 
 tests :: TestTree
-tests = testGroup "Bag Tests" [unitTests]
+tests = testGroup "Bag Tests" [unitTests, qcTests]
 
 unitTests :: TestTree
 unitTests =
@@ -52,4 +59,28 @@ unitTests =
                     EmptyBucket -> acc
                     Bucket _ v -> acc + v
              in foldlBag foldlFunc 0 (mapBag mapFunc bag) @?= 20
+        ]
+
+prop_identityLaw :: Bag Int -> Bool
+prop_identityLaw bag = (mempty <> bag) == (bag <> mempty)
+
+prop_associativeLaw :: Bag Int -> Bag Int -> Bag Int -> Bool
+prop_associativeLaw x y z =
+    ((x <> y) <> z) == (x <> (y <> z))
+
+prop_insertLaw :: Bag Int -> Int -> Bool
+prop_insertLaw b elem = numOfElems b + 1 == numOfElems (insert elem b)
+  where
+    numOfElems = foldlBag f 0
+    f acc bag = case bag of
+        EmptyBucket -> acc
+        Bucket k v -> acc + v
+
+qcTests :: TestTree
+qcTests =
+    testGroup
+        "QuickCheck Tests"
+        [ QC.testProperty "Neutral element law" prop_identityLaw,
+          QC.testProperty "Associative law" prop_associativeLaw,
+          QC.testProperty "Insert" prop_insertLaw
         ]

@@ -16,22 +16,32 @@ import Data.Char (ord)
 newtype Bag k = Bag [Bucket k]
 
 instance (Eq k, Show k) => Semigroup (Bag k) where
-    (<>) (Bag b1) (Bag b2) = foldlBag (\acc (Bucket k v) -> insertN k v acc) (Bag b1) $ filterBag (/= EmptyBucket) (Bag b2)
+    (<>) (Bag b1) (Bag b2) = foldlBag f (Bag b1) (Bag b2)
+      where
+        f acc b = case b of
+            EmptyBucket -> acc
+            Bucket k v -> insertN k v acc
 
 instance (Eq k, Show k) => Monoid (Bag k) where
     mempty = newBag
     mappend = (<>)
 
 instance (Eq k, Show k) => Eq (Bag k) where
-    (==) (Bag b1) (Bag b2) = cond1 && cond2
+    (==) (Bag b1) (Bag b2) = cond
       where
-        cond1 = length b1 == length b2
-        cond2 = foldlBag (\acc (Bucket k v) -> acc && count k (Bag b2) == v) True $ filterBag (/= EmptyBucket) (Bag b1)
+        cond = foldlBag f True (Bag b1)
+          where
+            f acc b = case b of
+                EmptyBucket -> acc
+                Bucket k v -> acc && count k (Bag b2) == v
 
 instance (Eq k, Show k) => Show (Bag k) where
     show (Bag bs) = "{" ++ inner ++ "}"
       where
-        inner = foldlBag (\acc (Bucket k v) -> if v > 0 then acc ++ show k ++ ": " ++ show v ++ ", " else acc) "" $ filterBag (/= EmptyBucket) (Bag bs)
+        f acc b = case b of
+            EmptyBucket -> acc
+            Bucket k v -> if v > 0 then acc ++ show k ++ ": " ++ show v ++ ", " else acc
+        inner = foldlBag f "" (Bag bs)
 
 newBag :: Bag k
 newBag = Bag $ [EmptyBucket | _ <- [1 .. 10]]
@@ -43,12 +53,12 @@ loadFactor (Bag buckets) = filled / total
     total = fromIntegral $ length buckets
 
 resize :: (Eq k, Show k) => Bag k -> Bag k
-resize (Bag buckets) = reinsertAll keys (Bag [EmptyBucket | _ <- [1 .. newSize]])
+resize (Bag buckets) = reinsertAll entries (Bag [EmptyBucket | _ <- [1 .. newSize]])
   where
     newSize = length buckets * 2
-    keys = [k | Bucket k _ <- buckets]
+    entries = [(k, v) | Bucket k v <- buckets]
     reinsertAll [] bag = bag
-    reinsertAll (k : ks) bag = reinsertAll ks (insert k bag)
+    reinsertAll ((k, v) : es) bag = reinsertAll es (insertN k v bag)
 
 insert :: (Eq k, Show k) => k -> Bag k -> Bag k
 insert key (Bag buckets) =
