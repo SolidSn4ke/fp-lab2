@@ -31,7 +31,7 @@ instance (Eq k, Show k) => Monoid (Bag k) where
 instance (Arbitrary k, Show k, Eq k, Num k, Random k) => Arbitrary (Bag k) where
     arbitrary = do
         pairs <- listOf $ (,) <$> arbitrary <*> choose (0, 5)
-        return $ foldr (\(k, n) bag -> insert k . insert n $ bag) newBag pairs
+        return $ foldr (\(k, n) bag -> insertN k n bag) newBag pairs
 
 instance (Eq k, Show k) => Eq (Bag k) where
     (==) (Bag b1) (Bag b2) = cond
