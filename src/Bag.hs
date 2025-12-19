@@ -11,29 +11,29 @@ module Bag (
 ) where
 
 import Bucket
-import Data.Char (ord)
+import Data.Hashable (Hashable (..), hash)
 import System.Random (Random)
 import Test.Tasty.QuickCheck (Arbitrary (..), choose, listOf)
 
 newtype Bag k = Bag [Bucket k]
 
-instance (Eq k, Show k) => Semigroup (Bag k) where
+instance (Eq k, Hashable k) => Semigroup (Bag k) where
     (<>) (Bag b1) (Bag b2) = foldlBag f (Bag b1) (Bag b2)
       where
         f acc b = case b of
             EmptyBucket -> acc
             Bucket k v -> insertN k v acc
 
-instance (Eq k, Show k) => Monoid (Bag k) where
+instance (Eq k, Hashable k) => Monoid (Bag k) where
     mempty = newBag
     mappend = (<>)
 
-instance (Arbitrary k, Show k, Eq k, Num k, Random k) => Arbitrary (Bag k) where
+instance (Arbitrary k, Hashable k, Eq k, Num k, Random k) => Arbitrary (Bag k) where
     arbitrary = do
         pairs <- listOf $ (,) <$> arbitrary <*> choose (0, 5)
         return $ foldr (\(k, n) bag -> insertN k n bag) newBag pairs
 
-instance (Eq k, Show k) => Eq (Bag k) where
+instance (Eq k, Hashable k) => Eq (Bag k) where
     (==) (Bag b1) (Bag b2) = cond
       where
         cond = foldlBag f True (Bag b1)
@@ -59,7 +59,7 @@ loadFactor (Bag buckets) = filled / total
     filled = fromIntegral . length $ filter (/= EmptyBucket) buckets
     total = fromIntegral $ length buckets
 
-resize :: (Eq k, Show k) => Bag k -> Bag k
+resize :: (Hashable k) => Bag k -> Bag k
 resize (Bag buckets) = reinsertAll entries (Bag [EmptyBucket | _ <- [1 .. newSize]])
   where
     newSize = length buckets * 2
@@ -67,7 +67,7 @@ resize (Bag buckets) = reinsertAll entries (Bag [EmptyBucket | _ <- [1 .. newSiz
     reinsertAll [] bag = bag
     reinsertAll ((k, v) : es) bag = reinsertAll es (insertN k v bag)
 
-insert :: (Eq k, Show k) => k -> Bag k -> Bag k
+insert :: (Hashable k) => k -> Bag k -> Bag k
 insert key (Bag buckets) =
     if loadFactor (Bag buckets) >= 0.7
         then insert key (resize $ Bag buckets)
@@ -79,16 +79,16 @@ insert key (Bag buckets) =
             if k == key || v < 1
                 then updateBucket buckets i key
                 else helper ((i + 1) `mod` length buckets)
-    h = hashcode key `mod` length buckets
+    h = hash key `mod` length buckets
     updatedBag = Bag $ helper h
 
-insertN :: (Eq k, Show k) => k -> Int -> Bag k -> Bag k
+insertN :: (Hashable k) => k -> Int -> Bag k -> Bag k
 insertN key n bag
     | n < 0 = bag
     | n == 0 = delete key . insert key $ bag
     | otherwise = insertN key (n - 1) (insert key bag)
 
-count :: (Eq k) => (Show k) => k -> Bag k -> Int
+count :: (Hashable k) => k -> Bag k -> Int
 count key (Bag buckets) = helper h
   where
     helper i = case buckets !! i of
@@ -97,9 +97,9 @@ count key (Bag buckets) = helper h
             if k == key
                 then v
                 else helper ((i + 1) `mod` length buckets)
-    h = hashcode key `mod` length buckets
+    h = hash key `mod` length buckets
 
-delete :: (Eq k) => (Show k) => k -> Bag k -> Bag k
+delete :: (Hashable k) => k -> Bag k -> Bag k
 delete key (Bag buckets) = Bag $ helper h
   where
     helper i = case buckets !! i of
@@ -108,7 +108,7 @@ delete key (Bag buckets) = Bag $ helper h
             if k == key
                 then decrementBucket buckets i key
                 else helper ((i + 1) `mod` length buckets)
-    h = hashcode key `mod` length buckets
+    h = hash key `mod` length buckets
 
 filterBag :: (Eq k) => (Bucket k -> Bool) -> Bag k -> Bag k
 filterBag _ (Bag []) = Bag []
@@ -132,7 +132,3 @@ mapBag :: (Bucket k -> Bucket k) -> Bag k -> Bag k
 mapBag _ (Bag []) = Bag []
 mapBag f (Bag (b : bs)) = case mapBag f (Bag bs) of
     Bag mappedBs -> Bag (f b : mappedBs)
-
-hashcode :: (Show s) => s -> Int
-hashcode s = case show s of
-    str -> foldl' (\acc x -> acc * 31 + ord x) 0 str
