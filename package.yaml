@@ -24,6 +24,7 @@ dependencies:
 - random
 - QuickCheck
 - tasty-quickcheck
+- hashable
 
 ghc-options:
 - -Wall

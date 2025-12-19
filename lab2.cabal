@@ -37,6 +37,7 @@ library
   build-depends:
       QuickCheck
     , base >=4.7 && <5
+    , hashable
     , random
     , tasty-quickcheck
   default-language: Haskell2010
@@ -53,6 +54,7 @@ executable lab2-exe
   build-depends:
       QuickCheck
     , base >=4.7 && <5
+    , hashable
     , lab2
     , random
     , tasty-quickcheck
@@ -71,6 +73,7 @@ test-suite lab2-test
   build-depends:
       QuickCheck
     , base >=4.7 && <5
+    , hashable
     , lab2
     , random
     , tasty
